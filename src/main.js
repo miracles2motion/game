@@ -34,7 +34,15 @@ function applyInputMode() {
   touch.applyLayout();
 }
 bus.on('settings:change', k => { if (['inputMode', 'touchStickSize', 'touchButtonSize', 'leftHanded'].includes(k)) applyInputMode(); });
-bus.on('input:lock', locked => { if (state === 'play' && settings.inputMode === 'desktop') { screens.setClickToPlay(!locked); if (!locked && !document.hidden) { /* losing lock = pause for safety */ pause(); } } });
+let lastPauseAt = 0;
+bus.on('input:lock', locked => {
+  if (state === 'play' && settings.inputMode === 'desktop') {
+    screens.setClickToPlay(!locked);
+    // Browser released the lock (Esc or alt-tab): pause. Esc also arrives as a keydown a moment
+    // later; lastPauseAt lets pollGlobal ignore that duplicate so we don't instantly resume.
+    if (!locked && !document.hidden) { pause(); lastPauseAt = performance.now(); }
+  }
+});
 function updateOrientation() { document.body.classList.toggle('portrait', window.innerHeight > window.innerWidth); }
 window.addEventListener('resize', updateOrientation); updateOrientation();
 
@@ -54,6 +62,7 @@ function play() {
 }
 function pause() {
   if (state !== 'play') return;
+  lastPauseAt = performance.now();
   state = 'pause'; game.setPaused(true); screens.show('pause'); kbm.unlock(); touch.setVisible(false); screens.setClickToPlay(false);
 }
 function resume() {
@@ -72,6 +81,7 @@ function captureMouse() { kbm.requestLock(); }
 function pollGlobal() {
   requestAnimationFrame(pollGlobal);
   if (input.take('pause')) {
+    if (performance.now() - lastPauseAt < 400) return;
     if (state === 'play') pause();
     else if (state === 'pause') resume();
     else if (state === 'settings' && settingsFrom === 'pause') closeSettings();

@@ -207,7 +207,7 @@ export class Player {
     bus.emit('player:shot', this.ctrl.position);
   }
 
-  getEye(out) { return out.set(this.ctrl.position.x, this.ctrl.position.y + this.eyeHeight - this.crouchT * 0 , this.ctrl.position.z); }
+  getEye(out) { return out.set(this.ctrl.position.x, this.ctrl.position.y + this.eyeHeight, this.ctrl.position.z); }
   getAimDir(out) { _euler.set(this.pitch, this.yaw, 0); return out.set(0, 0, -1).applyEuler(_euler); }
 
   takeDamage(amount, fromPos) {
