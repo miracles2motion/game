@@ -1,5 +1,7 @@
 # D-Force
 
+https://miracles2motion.github.io/game/
+
 A browser tactical shooter built on **three.js**, styled on the look and movement feel of
 *Delta Force (Mobile)*. Runs on desktop (keyboard + mouse) and phones/tablets (touch).
 
