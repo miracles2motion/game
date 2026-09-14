@@ -18,7 +18,7 @@ export class WorldCollider {
   constructor(mesh) {
     this.mesh = mesh;
     mesh.updateMatrixWorld(true);
-    mesh.geometry.boundsTree = new MeshBVH(mesh.geometry, { maxLeafTris: 8 });
+    mesh.geometry.boundsTree = new MeshBVH(mesh.geometry, { targetLeafSize: 8 });
     this.bvh = mesh.geometry.boundsTree;
     this.invMat = new THREE.Matrix4().copy(mesh.matrixWorld).invert();
   }

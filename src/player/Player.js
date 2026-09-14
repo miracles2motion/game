@@ -42,7 +42,7 @@ export class Player {
   get position() { return this.ctrl.position; }
 
   spawn(pos, yaw) {
-    this.ctrl.teleport(pos); this.yaw = yaw; this.pitch = 0; this.hp = this.maxHp; this.armor = this.maxArmor; this.alive = true;
+    this.spawnPos = pos.clone(); this.ctrl.teleport(pos); this.yaw = yaw; this.pitch = 0; this.hp = this.maxHp; this.armor = this.maxArmor; this.alive = true;
     this.weapons.forEach(w => w.refill()); this.wi = 0; this.viewModel?.setWeapon('ar'); this.sliding = 0; this.crouchT = 0; this.ads = 0;
     this.recoilPitch = this.recoilYaw = 0; this.kills = 0; this.shotsFired = 0; this.shotsHit = 0;
   }
@@ -55,12 +55,15 @@ export class Player {
     const [dx, dy] = input.consumeLook();
     this._lookDX = dx; this._lookDY = dy;
     this.yaw += dx; this.pitch += dy;
-    // Recoil recovery pulls the accumulated offset back
-    const rec = w.def.recoilRecover * dt * THREE.MathUtils.DEG2RAD * 4;
-    const prevRP = this.recoilPitch;
-    this.recoilPitch = THREE.MathUtils.damp(this.recoilPitch, 0, 6, dt);
-    this.recoilYaw = THREE.MathUtils.damp(this.recoilYaw, 0, 6, dt);
-    void rec; void prevRP;
+    // Recoil recovery: decay the accumulated kick and apply the same delta to the real view angles,
+    // so the camera settles back toward where the player was aiming (DF-style recoil recentre).
+    const prevRP = this.recoilPitch, prevRY = this.recoilYaw;
+    this.recoilPitch = THREE.MathUtils.damp(this.recoilPitch, 0, w.def.recoilRecover, dt);
+    this.recoilYaw = THREE.MathUtils.damp(this.recoilYaw, 0, w.def.recoilRecover, dt);
+    // If the player counter-pulls (mouse down) while recoil is active, consume the offset instead of fighting them.
+    if (dy < 0 && this.recoilPitch > 0) this.recoilPitch = Math.max(0, this.recoilPitch + dy);
+    this.pitch -= (prevRP - this.recoilPitch) * (dy < 0 ? 0 : 1);
+    this.yaw -= (prevRY - this.recoilYaw);
     const lim = Math.PI / 2 - 0.02;
     this.pitch = THREE.MathUtils.clamp(this.pitch, -lim, lim);
 
@@ -79,8 +82,8 @@ export class Player {
       this.fovKick = 6;
     }
     if (!wantCrouch) this._slideLatch = false;
+    // Reloading blocks sprint (DF: you can't sprint-reload). Empty-mag reloads are never cancelled.
     this.sprinting = wantSprint && !isReloading;
-    if (this.sprinting && w.reloading > 0) w.cancelReload();
 
     // Crouch height
     const crouched = this.sliding > 0 || wantCrouch;
@@ -132,7 +135,7 @@ export class Player {
     this.shake = THREE.MathUtils.damp(this.shake, 0, 7, dt);
 
     // Out-of-world safety
-    if (this.ctrl.position.y < -20) this.ctrl.teleport(new THREE.Vector3(-58, 2, -62));
+    if (this.ctrl.position.y < -20) this.ctrl.teleport(this.spawnPos || new THREE.Vector3(-58, 4, -62));
 
     // ---- weapons ----
     const slot = input.takeSlot();
@@ -140,7 +143,7 @@ export class Player {
     if (input.take('swap')) this.switchTo(1 - this.wi);
     if (input.take('reload')) { if (w.startReload()) { this.viewModel?.onReload(w.def.reload); this.sprinting = false; } }
     this.weapons.forEach(ws => ws.update(dt));
-    if (w.ammo === 0 && w.reloading <= 0 && w.reserve > 0 && (input.fire || true)) { if (w.startReload()) this.viewModel?.onReload(w.def.reload); }
+    if (w.ammo === 0 && w.reloading <= 0 && w.reserve > 0 && w.drawTimer <= 0) { if (w.startReload()) this.viewModel?.onReload(w.def.reload); }
     // Auto-fire for touch (settings) when crosshair over enemy
     const autoFire = settings.inputMode === 'touch' && settings.get('autoFire') && this.aimingAtEnemy && !this.sprinting;
     if ((input.fire || autoFire) && !this.sprinting) {

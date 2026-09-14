@@ -50,13 +50,13 @@ function stripToPNU(g) {
   out.setAttribute('normal', g.getAttribute('normal'));
   out.setAttribute('uv', g.getAttribute('uv'));
   out.setIndex(g.getIndex());
-  return out.toNonIndexed();
+  return out.index ? out.toNonIndexed() : out;
 }
 function onlyPosition(g) {
   const out = new THREE.BufferGeometry();
   out.setAttribute('position', g.getAttribute('position'));
   out.setIndex(g.getIndex());
-  return out.toNonIndexed();
+  return out.index ? out.toNonIndexed() : out;
 }
 
 // ---------- terrain ----------
@@ -319,11 +319,13 @@ export function buildMap(qualityName = 'high') {
   extractionPad(b, M, EXTRACT.x, EXTRACT.z);
 
   const { group, collider } = b.build();
+  const onGround = (x, z) => new THREE.Vector3(x, terrainHeight(x, z) + 0.3, z);
   return {
     group, collider, materials: M,
-    playerSpawn: new THREE.Vector3(-58, 1.5, -62),
-    playerSpawnYaw: -Math.PI * 0.25,
-    botSpawns: [new THREE.Vector3(-62, 1.5, 66), new THREE.Vector3(64, 1.5, 66), new THREE.Vector3(70, 1.5, 2), new THREE.Vector3(0, 1.5, 70)],
+    playerSpawn: onGround(-58, -62),
+    playerSpawnYaw: Math.PI * 1.25,
+    botSpawns: [onGround(-62, 66), onGround(64, 66), onGround(70, 2), onGround(0, 70)],
+    groundAt: (x, z) => terrainHeight(x, z),
     extraction: EXTRACT,
     extractRadius: 5.2,
     bounds: HALF,
