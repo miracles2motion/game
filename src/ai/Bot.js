@@ -63,6 +63,7 @@ export class Bot {
     this.ctrl.teleport(pos); this.hp = 100; this.alive = true; this.state = STATE.IDLE; this.stateT = 0;
     this.mesh.visible = true; this.mesh.rotation.set(0, 0, 0); this.mesh.scale.setScalar(1); this.mesh.position.copy(pos);
     this.skill = skill; this.awareness = 0; this.seenT = 99; this.deathT = 0;
+    this.headPos.set(pos.x, pos.y + 1.65, pos.z); this.bodyCenter.set(pos.x, pos.y + 1.0, pos.z);
     this.mesh.traverse(o => { if (o.material) { o.material.transparent = false; o.material.opacity = 1; } });
   }
 

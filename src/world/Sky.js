@@ -22,7 +22,7 @@ export function buildSky(scene, quality) {
         gl_FragColor = vec4(col, 1.0);
       }`,
   });
-  const dome = new THREE.Mesh(new THREE.SphereGeometry(900, 32, 16), skyMat);
+  const dome = new THREE.Mesh(new THREE.SphereGeometry(500, 32, 16), skyMat);
   dome.name = 'sky'; dome.frustumCulled = false; dome.renderOrder = -10;
   scene.add(dome);
 
